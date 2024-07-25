@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poziționare Antenă</title>
+  <style>
+ 
+
+    form {
+      background-color: #d0e9c6;
+      border-radius: 8px;
+      padding: 40px;
+      box-shadow: 2px 8px 12px rgba(0, 0, 0, 0.2);
+      width: 50%;
+      margin: auto;
+    }
+    .input-container {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      color: #333;
+      font-weight: bold;
+      font-family: "Segoe UI", Arial, sans-serif;
+      transition: color 0.3s ease;
+    }
+    label:hover {
+      color: #4caf50;
+    }
+    input[type="number"] {
+      width: 50%;
+      padding: 12px;
+      border: 2px solid #4caf50;
+      border-radius: 8px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      transition: border-color 0.3s ease;
+    }
+    input[type="number"]:focus {
+      border-color: #45a049;
+    }
+    button {
+      background-color: #4caf50;
+      color: white;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      display: block;
+      margin: 0 auto;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    button:hover {
+      background-color: darkgreen;
+      transform: scale(1.05);
+    }
+    h1 {
+      text-align: center;
+      color: #4caf50;
+      margin-bottom: 30px;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    #currentAngles {
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 50%;
+  margin: 15px auto;
+}
+
+#currentAngles p {
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+  padding: 5px;
+}
+
+#currentAngles span {
+  font-weight: bold;
+  color: #4caf50;
+}
+#goToZeroButton:hover {
+      background-color: black;
+      transform: scale(1.05);
+    }
+#goToZeroButton {
+  background-color: gray;
+      color: white;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      display: block;
+      margin: 15px auto;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+   
+  </style>
+</head>
+<body>
+  <h1>Sistem de poziționare antenă</h1>
+  <form>
+    <div class="input-container">
+      <label for="azimuthAngle">Unghiul de azimut (grade):</label>
+      <input type="number" id="azimuthAngle" min="0" max="360" step="1" value="0">
+    </div>
+    <div class="input-container">
+      <label for="elevationAngle">Unghiul de elevație (grade):</label>
+      <input type="number" id="elevationAngle" min="0" max="360" step="1" value="0">
+    </div>
+    <button id="sendStepsButton">Trimite unghiurile</button>
+    <button id="goToZeroButton">Poziție initială</button>
+    <div id="currentAngles">
+      <p><strong>Elevație:</strong> <span id="currentElevation">0</span> grade, <strong>Azimut:</strong> <span id="currentAzimuth">0</span> grade</p>
+
+    </div>
+  </form>
+
+  
+  
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    function calculateAndSendSteps() {
+      var azimuthAngle = parseFloat(document.getElementById('azimuthAngle').value);
+      var elevationAngle = parseFloat(document.getElementById('elevationAngle').value);
+
+      var azimuthStepAngle = 360.0 / (200 * 2.5);
+      var elevationStepAngle = 360.0 / (200 * 2.04);
+
+      var azimuthSteps = Math.round(azimuthAngle / azimuthStepAngle);
+      var elevationSteps = Math.round(elevationAngle / elevationStepAngle);
+
+      console.log("Pasi pe azimut: " + azimuthSteps);
+      console.log("Pasi pe elevatie: " + elevationSteps);
+
+      var currentAzimuthDisplay = document.getElementById('currentAzimuth');
+  var currentElevationDisplay = document.getElementById('currentElevation');
+
+  var currentAzimuthValue = parseFloat(currentAzimuthDisplay.textContent);
+  var currentElevationValue = parseFloat(currentElevationDisplay.textContent);
+
+  currentAzimuthValue = (currentAzimuthValue + azimuthAngle) % 360;
+  currentElevationValue = (currentElevationValue + elevationAngle) % 360;
+
+  currentAzimuthDisplay.textContent = currentAzimuthValue.toFixed(2);
+  currentElevationDisplay.textContent = currentElevationValue.toFixed(2);
+
+      socket.emit('sendSteps', { azimuthSteps, elevationSteps });
+
+      
+    }
+
+    function validateInput() {
+      var azimuthAngle = parseFloat(document.getElementById('azimuthAngle').value);
+      var elevationAngle = parseFloat(document.getElementById('elevationAngle').value);
+
+      if (isNaN(azimuthAngle) || isNaN(elevationAngle)) {
+        return false;
+      }
+
+      if (azimuthAngle < 0 || azimuthAngle > 360 || elevationAngle < 0 || elevationAngle > 360) {
+        return false;
+      }
+
+      return true;
+    }
+
+    function displayFeedback() {
+      alert("Unghiurile au fost trimise cu succes!");
+    }
+
+    function handleError(errorMsg) {
+      alert("Am intampinat o eroare!: " + errorMsg);
+    }
+
+    document.getElementById('sendStepsButton').addEventListener('click', function(event) {
+      event.preventDefault();
+      if (validateInput()) {
+        calculateAndSendSteps();
+        displayFeedback();
+      } else {
+        handleError("Input invalid!");
+      }
+    });
+
+  
+    document.getElementById('goToZeroButton').addEventListener('click', function(event) {
+  event.preventDefault();
+  
+  var currentAzimuthDisplay = document.getElementById('currentAzimuth');
+  var currentElevationDisplay = document.getElementById('currentElevation');
+
+  var currentAzimuthValue = parseFloat(currentAzimuthDisplay.textContent);
+  var currentElevationValue = parseFloat(currentElevationDisplay.textContent);
+
+  
+  var azimuthStepAngle = 360.0 / (200 * 2.5);
+  var elevationStepAngle = 360.0 / (200 * 2.04);
+
+  var azimuthStepsToZero = Math.round(-currentAzimuthValue / azimuthStepAngle);
+  var elevationStepsToZero = Math.round(-currentElevationValue / elevationStepAngle);
+
+  console.log("Pasi azimut spre 0: " + azimuthStepsToZero);
+  console.log("Pasi elevatie spre 0: " + elevationStepsToZero);
+
+  
+  currentAzimuthDisplay.textContent = "0";
+  currentElevationDisplay.textContent = "0";
+  document.getElementById('azimuthAngle').value = 0;
+  document.getElementById('elevationAngle').value = 0;
+
+  socket.emit('sendSteps', { azimuthSteps: azimuthStepsToZero, elevationSteps: elevationStepsToZero });
+
+  displayFeedback();
+});
+
+
+  </script>
+</body>
+</html>
