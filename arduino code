@@ -1,0 +1,53 @@
+#include <Stepper.h>
+
+const int stepsPerRevolution = 200;  // nr. pași per revoluție a motoarelor NEMA 17
+
+// Inițializează bibliotecile stepper pentru motoarele de azimut și elevație pe pinii 4 până la 11:
+Stepper azimuthStepper(stepsPerRevolution, 8, 9, 10, 11);
+Stepper elevationStepper(stepsPerRevolution, 4, 5, 6, 7); 
+
+void setup() {
+ 
+  azimuthStepper.setSpeed(15);
+  elevationStepper.setSpeed(20);
+ // Inițializează portul serial:
+  Serial.begin(9600);
+  Serial.println("Arduino este pregătit!");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    // Citește inputul de la monitorul serial
+    String inputString = Serial.readStringUntil('\n');
+    inputString.trim(); // Elimină spațiile albe de la început și sfârșit
+
+    Serial.print("Input primit: ");
+    Serial.println(inputString);  // Mesaj de debugging 
+
+    if (inputString.length() > 0) {
+       // Convertește inputul în pași de azimut și elevație
+      int commaIndex = inputString.indexOf(',');
+      if (commaIndex != -1 && commaIndex < inputString.length() - 1) {
+        String azimuthStr = inputString.substring(0, commaIndex);
+        String elevationStr = inputString.substring(commaIndex + 1);
+https://github.com/mariusmuntean1410/Diploma-Project/tree/main
+        int azimuthSteps = azimuthStr.toInt();
+        int elevationSteps = elevationStr.toInt();
+
+        Serial.print("Input convertit - Pasi Azimut: ");
+        Serial.print(azimuthSteps);
+        Serial.print(", Pasi elevatie: ");
+        Serial.println(elevationSteps);
+
+        Serial.println("Pornire motoare...");
+        azimuthStepper.step(azimuthSteps);
+        elevationStepper.step(elevationSteps);
+
+        delay(1000); // Delay pentru a permite motoarelor să se miște 
+      } else {
+        Serial.println("Format de input invalid. Inputul ar trebui să fie în formatul 'azimuthSteps,elevationSteps'");
+      }
+    }
+  }
+  delay(500); // Delay pentru a preveni citirea prea rapidă a serialului
+}
